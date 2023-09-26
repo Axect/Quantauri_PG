@@ -1,0 +1,23 @@
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "axect", email = "ax2ct@outlook.com"},
+]
+dependencies = [
+    "notebook>=7.0.4",
+    "setuptools>=68.2.2",
+    "finance-datareader>=0.9.50",
+    "numpy>=1.26.0",
+    "pandas>=2.1.1",
+    "matplotlib>=3.8.0",
+    "pyarrow>=13.0.0",
+    "scienceplots>=2.1.0",
+    "argparse>=1.4.0",
+    "pylint>=2.17.6",
+]
+requires-python = ">=3.11, <3.13"
+readme = "README.md"
+license = {text = "MIT"}
+
