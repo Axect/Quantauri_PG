@@ -1,8 +1,8 @@
 use peroxide::fuga::*;
-use quantauri::algorithm::{sma, ema, mstd, bollinger_band, macd};
+use quantauri::base::{sma, ema, mstd, bollinger_band, macd};
 
 fn main() {
-    let mut df = DataFrame::read_parquet("close.parquet").expect("Can't read parquet");
+    let mut df = DataFrame::read_parquet("data/close.parquet").expect("Can't read parquet");
     df.print();
     df.as_types(vec![Str, F64, F64, F64]);
     let data: Vec<f64> = df["close"].to_vec();
@@ -24,5 +24,5 @@ fn main() {
 
     df.print();
 
-    df.write_parquet("test.parquet", CompressionOptions::Uncompressed).expect("Can't write parquet");
+    df.write_parquet("data/test.parquet", CompressionOptions::Uncompressed).expect("Can't write parquet");
 }
