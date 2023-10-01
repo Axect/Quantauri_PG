@@ -1,5 +1,130 @@
 use peroxide::fuga::*;
 
+// =============================================================================
+// High Level Structure
+// =============================================================================
+/// Bollinger Band
+///
+/// # Arguments
+/// * `period` - usize
+/// * `amplitude` - f64
+pub struct BollingerBand {
+    pub period: usize,
+    pub amplitude: f64,
+    pub ubb: Vec<f64>,
+    pub mbb: Vec<f64>,
+    pub lbb: Vec<f64>,
+}
+
+impl BollingerBand {
+    pub fn new(period: usize, amplitude: f64) -> Self {
+        BollingerBand {
+            period,
+            amplitude,
+            ubb: vec![],
+            mbb: vec![],
+            lbb: vec![],
+        }
+    }
+
+    pub fn get_ubb(&self) -> &Vec<f64> {
+        &self.ubb
+    }
+
+    pub fn get_lbb(&self) -> &Vec<f64> {
+        &self.lbb
+    }
+
+    pub fn get_mbb(&self) -> &Vec<f64> {
+        &self.mbb
+    }
+
+    /// Calculate Bollinger Band
+    ///
+    /// # Arguments
+    /// * `v` - &[f64]
+    ///
+    /// # Returns
+    /// * (Vec<f64>, Vec<f64>)
+    ///  * (ubb, lbb)
+    ///  * ubb = sma + amplitude * mstd
+    ///  * mbb = sma
+    ///  * lbb = sma - amplitude * mstd
+    pub fn bb(&self, v: &[f64]) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+        let sma = sma(v, self.period);
+        let mstd = mstd(v, self.period, &sma);
+        let (ubb, lbb) = bollinger_band(v, self.amplitude, &sma, &mstd);
+        (ubb, sma, lbb)
+    }
+
+    pub fn bb_mut(&mut self, v: &[f64]) {
+        let (ubb, mbb, lbb) = self.bb(v);
+        self.ubb = ubb;
+        self.mbb = mbb;
+        self.lbb = lbb;
+    }
+
+    /// Calculate Percentage Band
+    ///
+    /// # Arguments
+    /// * `v` - &[f64]
+    ///
+    /// # Returns
+    /// * Vec<f64>
+    ///   * (v - lbb) / (ubb - lbb)
+    pub fn per_b(&self, v: &[f64]) -> Vec<f64> {
+        let mut result = vec![0f64; v.len()];
+        let ubb = self.get_ubb();
+        let lbb = self.get_lbb();
+        if ubb.len() > 0 {
+            for i in 0 .. v.len() {
+                let u = ubb[i];
+                let l = lbb[i];
+                if u == l {
+                    result[i] = (v[i] - l) / (u - l + 1e-3);
+                } else {
+                    result[i] = (v[i] - lbb[i]) / (ubb[i] - lbb[i]);
+                }
+            }
+        } else {
+            let (ubb, _, lbb) = self.bb(v);
+            for i in 0 .. v.len() {
+                result[i] = (v[i] - lbb[i]) / (ubb[i] - lbb[i]);
+            }
+        }
+        result
+    }
+
+    /// Calculate Band Width
+    ///
+    /// # Arguments
+    /// * `v` - &[f64]
+    ///
+    /// # Returns
+    /// * Vec<f64>
+    ///  * (ubb - lbb) / mbb
+    pub fn bw(&self, v: &[f64]) -> Vec<f64> {
+        let mut result = vec![0f64; v.len()];
+        let ubb = self.get_ubb();
+        let mbb = self.get_mbb();
+        let lbb = self.get_lbb();
+        if self.ubb.len() > 0 {
+            for i in 0 .. v.len() {
+                result[i] = (ubb[i] - lbb[i]) / mbb[i];
+            }
+        } else {
+            let (ubb, mbb, lbb) = self.bb(v);
+            for i in 0 .. v.len() {
+                result[i] = (ubb[i] - lbb[i]) / mbb[i];
+            }
+        }
+        result
+    }
+}
+
+// =============================================================================
+// Low Level Function
+// =============================================================================
 /// Simple Moving Average
 ///
 /// # Arguments
@@ -101,17 +226,17 @@ pub fn mstd(v: &[f64], window_size: usize, sma: &[f64]) -> Vec<f64> {
 //
 // # Returns
 // * (Vec<f64>, Vec<f64>)
-//   * (upper, lower)
-//   * upper = sma + amplitude * mstd
-//   * lower = sma - amplitude * mstd
+//   * (ubb, lbb)
+//   * ubb = sma + amplitude * mstd
+//   * lbb = sma - amplitude * mstd
 pub fn bollinger_band(v: &[f64], amplitude: f64, sma: &[f64], mstd: &[f64]) -> (Vec<f64>, Vec<f64>) {
-    let mut upper = vec![0f64; v.len()];
-    let mut lower = vec![0f64; v.len()];
+    let mut ubb = vec![0f64; v.len()];
+    let mut lbb = vec![0f64; v.len()];
     for i in 0 .. v.len() {
-        upper[i] = sma[i] + amplitude * mstd[i];
-        lower[i] = sma[i] - amplitude * mstd[i];
+        ubb[i] = sma[i] + amplitude * mstd[i];
+        lbb[i] = sma[i] - amplitude * mstd[i];
     }
-    (upper, lower)
+    (ubb, lbb)
 }
 
 // Moving Average Convergence Divergence
